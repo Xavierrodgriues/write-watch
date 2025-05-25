@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+
+/* Custom progress bar color */
+.orange-progress {
+  background: orange !important;
+}
