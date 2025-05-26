@@ -2,13 +2,17 @@ import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "react-toastify";
 import { useUser } from "@clerk/clerk-react";
+import { useVideo } from "../Context/VideoContext";
 
 const UploadVideo = () => {
   const fileInputRef = useRef(null);
-  const [videoName, setVideoName] = useState("");
   const [videoURL, setVideoURL] = useState("");
   const navigate = useNavigate();
   const { isSignedIn } = useUser();
+  const {videoName, setVideoName} = useVideo();
+
+
+
   const handleClick = () => {
     fileInputRef.current?.click();
   };
@@ -16,7 +20,7 @@ const UploadVideo = () => {
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
-      setVideoName(file.name);
+      setVideoName(file);
       setVideoURL(""); // Reset URL if file is selected
       console.log("Selected video file:", file);
     }
@@ -45,7 +49,7 @@ const UploadVideo = () => {
       return;
     }
 
-    navigate("/videoworkspace", {state: {video: videoName || videoURL}})
+    navigate("/videoworkspace", {state: {video_url: videoURL}})
 
   };
 
@@ -81,7 +85,7 @@ const UploadVideo = () => {
             <span className="text-orange-500 underline">click to browse</span>
           </p>
           {videoName && (
-            <p className="mt-2 text-sm text-green-600">Selected: {videoName}</p>
+            <p className="mt-2 text-sm text-green-600">Selected: {videoName.name}</p>
           )}
         </div>
 
