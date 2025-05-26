@@ -1,38 +1,57 @@
 import AuthenticationButton from "./AuthenticationButton";
-// import { useLocation } from "react-router";
+import { useLocation } from "react-router";
 import { ReflexContainer, ReflexElement, ReflexSplitter } from "react-reflex";
 import "react-reflex/styles.css";
-import videoFile from '../assets/mf.mp4';
-
+import { useVideo } from "../Context/VideoContext";
+import { useState } from "react";
+import YouTubePlayer from "../utils/YoutubePlayer";
+import RichTextEditor from "./RichTextEditor";
+// import videoFile from '../assets/mf.mp4';
 
 const VideoWorkSpace = () => {
-  // const location = useLocation();
-  // const videoName = location.state?.video;
+  const location = useLocation();
+  const {videoName} = useVideo();
+  const uploadedVideo = videoName;
+  const videoURL = location.state?.video_url;
+  const [player, setPlayer] = useState();
+
+  const extractYouTubeID = (url) => {
+    const regex = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
+  const match = url.match(regex);
+  return match ? match[1] : null;
+  }
   return (
     <div>
       <AuthenticationButton />
       <ReflexContainer orientation="vertical" style={{ height: "100vh" }}>
         <ReflexElement>
           <div className="w-full h-full bg-black flex items-center justify-center">
-            <video
-              src={videoFile}
-              controls
-              autoPlay
-              className="w-full h-full object-contain"
-            />
+            {uploadedVideo ? (
+              <video
+                src={URL.createObjectURL(uploadedVideo)}
+                controls
+                autoPlay
+                className="w-full h-full object-contain"
+              />
+            ) : videoURL ? (
+              <YouTubePlayer
+          videoId={extractYouTubeID(videoURL)}
+          onPlayerReady={(p) => setPlayer(p)}
+        />
+            ) : (
+              <p className="text-white">No video Selected</p>
+            )}
           </div>
-          
         </ReflexElement>
 
         <ReflexSplitter />
 
         <ReflexElement>
           {/* Right side: Rich Text Editor */}
-          <div>Rich Editor</div>
+          <RichTextEditor />
         </ReflexElement>
       </ReflexContainer>
 
-      {/* {videoName} */}
     </div>
   );
 };
