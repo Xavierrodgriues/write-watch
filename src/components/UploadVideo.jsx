@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "react-toastify";
 import { useUser } from "@clerk/clerk-react";
@@ -6,12 +6,15 @@ import { useVideo } from "../Context/VideoContext";
 
 const UploadVideo = () => {
   const fileInputRef = useRef(null);
-  const [videoURL, setVideoURL] = useState("");
   const navigate = useNavigate();
   const { isSignedIn } = useUser();
-  const {videoName, setVideoName} = useVideo();
+  const { videoName, setVideoName, videoURL, setVideoURL } = useVideo();
 
-
+  // Clear video context when component mounts
+  useEffect(() => {
+    setVideoName(null);
+    setVideoURL("");
+  }, [setVideoName]);
 
   const handleClick = () => {
     fileInputRef.current?.click();
@@ -27,29 +30,31 @@ const UploadVideo = () => {
   };
 
   const handleURLChange = (event) => {
-    setVideoURL(event.target.value);
-    setVideoName(""); // Reset file name if URL is entered
+    const url = event.target.value;
+    setVideoURL(url);
+    // Clear video file from context when URL is entered
+    if (url.trim() !== "") {
+      setVideoName(null);
+    }
   };
 
   const handleDone = () => {
-    
-    if(!videoName && !videoURL ){
+    if (!videoName && !videoURL.trim()) {
       toast("Have you selected video or url ?", {
         progressClassName: "orange-progress"
       });
-
       return;
     }
 
-    if(!isSignedIn){
+    if (!isSignedIn) {
       toast("Are you Signed In ?", {
         progressClassName: "orange-progress"
       });
-
       return;
     }
 
-    navigate("/videoworkspace", {state: {video_url: videoURL}})
+    navigate("/videoworkspace")
+
 
   };
 
@@ -113,6 +118,9 @@ const UploadVideo = () => {
             onChange={handleURLChange}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 transition"
           />
+          {videoURL && (
+            <p className="mt-2 text-sm text-green-600">URL entered: {videoURL}</p>
+          )}
         </div>
 
         {/* Done Button */}

@@ -1,5 +1,4 @@
 import AuthenticationButton from "./AuthenticationButton";
-import { useLocation } from "react-router";
 import { ReflexContainer, ReflexElement, ReflexSplitter } from "react-reflex";
 import "react-reflex/styles.css";
 import { useVideo } from "../Context/VideoContext";
@@ -9,10 +8,10 @@ import RichTextEditor from "./RichTextEditor";
 // import videoFile from '../assets/mf.mp4';
 
 const VideoWorkSpace = () => {
-  const location = useLocation();
-  const {videoName} = useVideo();
+
+  const {videoName, videoURL} = useVideo();
   const uploadedVideo = videoName;
-  const videoURL = location.state?.video_url;
+  // const videoURL = location.state?.video_url;
   const [player, setPlayer] = useState();
 
   const extractYouTubeID = (url) => {
