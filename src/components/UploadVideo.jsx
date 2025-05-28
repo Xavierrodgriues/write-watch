@@ -14,7 +14,7 @@ const UploadVideo = () => {
   useEffect(() => {
     setVideoName(null);
     setVideoURL("");
-  }, [setVideoName]);
+  }, []);
 
   const handleClick = () => {
     fileInputRef.current?.click();
