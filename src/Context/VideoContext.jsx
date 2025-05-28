@@ -5,7 +5,7 @@ export const useVideo = () => useContext(VideoContext);
 
 const VideoProvider = ({children}) => {
     const [videoName, setVideoName] = useState(null);
-    const [videoURL, setVideoURL] = useState("");
+    const [videoURL, setVideoURL] = useState(null);
     
     const clearVideo = () => {
         setVideoName(null);
