@@ -3,7 +3,7 @@ import { useState, useRef } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-function RichTextEditor({ onKeyPressPause }) {
+function RichTextEditor() {
   const [content, setContent] = useState('');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const editorRef = useRef(null);
@@ -235,14 +235,8 @@ function RichTextEditor({ onKeyPressPause }) {
     }
   };
 
-   const handleKeyPress = (e) => {
-    if (onKeyPressPause) {
-      onKeyPressPause(); // Call pause on key press
-    }
-  };
-
   return (
-    <div className="p-4 h-full flex flex-col" onKeyDown={handleKeyPress}>
+    <div className="p-4 h-full flex flex-col">
       <div>
         <Editor
           apiKey={import.meta.env.VITE_MCE_API}
