@@ -2,7 +2,7 @@ import { Editor } from "@tinymce/tinymce-react";
 import { useState, useRef } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import AiToggleButton from "./AIToggleButton";
+import AiToggleButton from "./AiToggleButton";
 
 // Import separated utilities
 import { enhanceTextWithGroq } from "../services/groqService";
