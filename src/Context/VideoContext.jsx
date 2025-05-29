@@ -5,7 +5,7 @@ export const useVideo = () => useContext(VideoContext);
 
 const VideoProvider = ({children}) => {
     const [videoName, setVideoName] = useState(null);
-    const [videoURL, setVideoURL] = useState(null);
+    const [videoURL, setVideoURL] = useState("");
     
     const clearVideo = () => {
         setVideoName(null);
@@ -14,9 +14,9 @@ const VideoProvider = ({children}) => {
     
     return (
         <VideoContext.Provider value={{
-            videoName, 
-            setVideoName, 
-            videoURL, 
+            videoName,
+            setVideoName,
+            videoURL,
             setVideoURL,
             clearVideo
         }}>
