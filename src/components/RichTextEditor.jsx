@@ -1,19 +1,29 @@
-import { Editor } from '@tinymce/tinymce-react';
-import { useState, useRef } from 'react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { Editor } from "@tinymce/tinymce-react";
+import { useState, useRef } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import AiToggleButton from "./AIToggleButton";
+
+// Import separated utilities
+import { enhanceTextWithGroq } from "../services/groqService";
+import { 
+  extractStructuredContent, 
+  convertToHTML, 
+  isValidContent 
+} from "../utils/textUtils";
 
 function RichTextEditor() {
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState("");
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const editorRef = useRef(null);
 
-  const handleEditorChange = (newContent, editor) => {
+  const handleEditorChange = (newContent) => {
     setContent(newContent);
   };
 
   const handleDownloadPDF = async () => {
-    if (!content || content.trim() === '' || content === '<p><br></p>') {
+    if (!isValidContent(content)) {
       alert("No content to download. Please add some notes first.");
       return;
     }
@@ -22,7 +32,7 @@ function RichTextEditor() {
 
     try {
       // Create a temporary container for rendering
-      const tempContainer = document.createElement('div');
+      const tempContainer = document.createElement("div");
       tempContainer.innerHTML = `
         <div style="
           width: 210mm;
@@ -68,20 +78,20 @@ function RichTextEditor() {
       `;
 
       // Process lists to ensure markers are visible
-      const contentArea = tempContainer.querySelector('.content-area');
-      
+      const contentArea = tempContainer.querySelector(".content-area");
+
       // Handle ordered lists - add visible numbers
-      const orderedLists = contentArea.querySelectorAll('ol');
+      const orderedLists = contentArea.querySelectorAll("ol");
       orderedLists.forEach((ol, olIndex) => {
         ol.style.counterReset = `list-${olIndex}`;
-        const listItems = ol.querySelectorAll('li');
+        const listItems = ol.querySelectorAll("li");
         listItems.forEach((li, liIndex) => {
           li.style.counterIncrement = `list-${olIndex}`;
-          li.style.position = 'relative';
-          li.style.paddingLeft = '25px';
-          
+          li.style.position = "relative";
+          li.style.paddingLeft = "25px";
+
           // Create visible number
-          const numberSpan = document.createElement('span');
+          const numberSpan = document.createElement("span");
           numberSpan.textContent = `${liIndex + 1}. `;
           numberSpan.style.cssText = `
             position: absolute;
@@ -95,16 +105,16 @@ function RichTextEditor() {
       });
 
       // Handle unordered lists - add visible bullets
-      const unorderedLists = contentArea.querySelectorAll('ul');
-      unorderedLists.forEach(ul => {
-        const listItems = ul.querySelectorAll('li');
-        listItems.forEach(li => {
-          li.style.position = 'relative';
-          li.style.paddingLeft = '25px';
-          
+      const unorderedLists = contentArea.querySelectorAll("ul");
+      unorderedLists.forEach((ul) => {
+        const listItems = ul.querySelectorAll("li");
+        listItems.forEach((li) => {
+          li.style.position = "relative";
+          li.style.paddingLeft = "25px";
+
           // Create visible bullet
-          const bulletSpan = document.createElement('span');
-          bulletSpan.textContent = '• ';
+          const bulletSpan = document.createElement("span");
+          bulletSpan.textContent = "• ";
           bulletSpan.style.cssText = `
             position: absolute;
             left: 0;
@@ -118,7 +128,7 @@ function RichTextEditor() {
       });
 
       // Add comprehensive styling to content elements
-      const styleSheet = document.createElement('style');
+      const styleSheet = document.createElement("style");
       styleSheet.textContent = `
         .content-area h1 { font-size: 20px !important; font-weight: 600 !important; margin: 20px 0 12px 0 !important; color: #2c3e50 !important; }
         .content-area h2 { font-size: 18px !important; font-weight: 600 !important; margin: 18px 0 10px 0 !important; color: #34495e !important; }
@@ -185,16 +195,16 @@ function RichTextEditor() {
       document.body.appendChild(tempContainer);
 
       // Wait a bit for styles to apply
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Generate canvas from the container
       const canvas = await html2canvas(tempContainer, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#ffffff',
+        backgroundColor: "#ffffff",
         width: tempContainer.offsetWidth,
-        height: tempContainer.offsetHeight
+        height: tempContainer.offsetHeight,
       });
 
       // Clean up
@@ -202,7 +212,7 @@ function RichTextEditor() {
       document.head.removeChild(styleSheet);
 
       // Create PDF
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdf = new jsPDF("p", "mm", "a4");
       const imgWidth = 210; // A4 width in mm
       const pageHeight = 297; // A4 height in mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
@@ -210,28 +220,96 @@ function RichTextEditor() {
       let position = 0;
 
       // Add first page
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+      pdf.addImage(
+        canvas.toDataURL("image/png"),
+        "PNG",
+        0,
+        position,
+        imgWidth,
+        imgHeight
+      );
       heightLeft -= pageHeight;
 
       // Add additional pages if content is longer
       while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+        pdf.addImage(
+          canvas.toDataURL("image/png"),
+          "PNG",
+          0,
+          position,
+          imgWidth,
+          imgHeight
+        );
         heightLeft -= pageHeight;
       }
 
       // Generate filename with timestamp
-      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
+      const timestamp = new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace(/[:.]/g, "-");
       const filename = `video-notes-${timestamp}.pdf`;
-      
-      pdf.save(filename);
 
+      pdf.save(filename);
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Error generating PDF. Please try again.');
+      console.error("Error generating PDF:", error);
+      alert("Error generating PDF. Please try again.");
     } finally {
       setIsGeneratingPDF(false);
+    }
+  };
+
+  // Enhanced content function using separated Groq service
+  const EnhanceContent = async () => {
+    if (!isValidContent(content)) {
+      alert("No content to enhance. Please add some text first.");
+      return;
+    }
+
+    setIsEnhancing(true);
+
+    try {
+      // Extract structured text from HTML using separated utility
+      const structuredText = extractStructuredContent(content);
+      
+      console.log("Original structured text:", structuredText);
+
+      // Validate that we have meaningful content
+      if (!structuredText || structuredText.trim().length < 10) {
+        throw new Error("Content is too short or empty after processing");
+      }
+
+      // Call Groq API using separated service
+      const apiKey = import.meta.env.VITE_GROQ_API;
+      if (!apiKey) {
+        throw new Error("Groq API key is not configured");
+      }
+
+      const enhancedText = await enhanceTextWithGroq(structuredText, apiKey);
+
+      console.log("Enhanced text:", enhancedText);
+
+      // Convert enhanced text back to HTML using separated utility
+      const enhancedHTML = convertToHTML(enhancedText);
+
+      console.log("Enhanced HTML:", enhancedHTML);
+
+      // Update the editor content
+      if (editorRef.current) {
+        editorRef.current.setContent(enhancedHTML);
+        setContent(enhancedHTML);
+      }
+
+      // Success - no alert needed as the content visibly changes
+      console.log("Content enhanced successfully");
+
+    } catch (error) {
+      console.error("Error enhancing content:", error);
+      alert(`Error enhancing content: ${error.message}`);
+    } finally {
+      setIsEnhancing(false);
     }
   };
 
@@ -242,42 +320,64 @@ function RichTextEditor() {
           apiKey={import.meta.env.VITE_MCE_API}
           value={content}
           onEditorChange={handleEditorChange}
-          onInit={(evt, editor) => editorRef.current = editor}
+          onInit={(evt, editor) => (editorRef.current = editor)}
           init={{
-            height: 'calc(100vh - 200px)',
+            height: "calc(100vh - 200px)",
             menubar: true,
             plugins: [
-              'advlist', 'autolink', 'lists', 'link', 'charmap', 'preview',
-              'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-              'insertdatetime', 'media', 'table', 'help', 'wordcount'
+              "advlist",
+              "autolink",
+              "lists",
+              "link",
+              "charmap",
+              "preview",
+              "anchor",
+              "searchreplace",
+              "visualblocks",
+              "code",
+              "fullscreen",
+              "insertdatetime",
+              "media",
+              "table",
+              "help",
+              "wordcount",
             ],
             toolbar:
-              'undo redo | formatselect | bold italic underline | ' +
-              'alignleft aligncenter alignright alignjustify | ' +
-              'bullist numlist outdent indent | removeformat | help',
+              "undo redo | formatselect | bold italic underline | " +
+              "alignleft aligncenter alignright alignjustify | " +
+              "bullist numlist outdent indent | removeformat | help",
             content_style: `
               body { 
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
                 font-size: 14px; 
                 line-height: 1.6; 
               }
-            `
+            `,
           }}
         />
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        
+      <div className="flex flex-wrap gap-2 items-center">
         <button
           onClick={handleDownloadPDF}
           disabled={isGeneratingPDF}
-          className="mt-4 px-4 py-2 bg-orange-600 text-white rounded cursor-pointer hover:bg-orange-700 disabled:bg-orange-400 disabled:cursor-not-allowed transition-colors"
+          className="mt-4 px-4 py-4 bg-orange-600 text-white rounded cursor-pointer hover:bg-orange-700 disabled:bg-orange-400 disabled:cursor-not-allowed transition-colors"
           title="Download as formatted PDF (preserves styling)"
         >
-          {isGeneratingPDF ? '⏳ Generating...' : '📋 Download PDF'}
+          {isGeneratingPDF ? "⏳ Generating..." : "📋 Download PDF"}
         </button>
-        
-      
+
+        <div onClick={EnhanceContent} className="mt-4">
+          <AiToggleButton disabled={isEnhancing} />
+        </div>
+
+        {/* Loading indicator for enhancement */}
+        {isEnhancing && (
+          <div className="mt-4 px-4 py-2 bg-blue-100 text-blue-800 rounded flex items-center">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-800 mr-2"></div>
+            Enhancing content...
+          </div>
+        )}
       </div>
     </div>
   );
